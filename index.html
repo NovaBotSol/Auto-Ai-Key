@@ -1,74 +1,143 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pay for Your AUTOAI Key</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: #111827;
-      color: #ffffff;
-      text-align: center;
-      padding: 20px;
-    }
-    .container {
-      max-width: 600px;
-      margin: 50px auto;
-      background-color: #1f2937;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    }
-    h1 {
-      font-size: 28px;
-      margin-bottom: 10px;
-    }
-    p {
-      font-size: 16px;
-      margin-bottom: 20px;
-    }
-    .pay-button {
-      display: inline-block;
-      padding: 12px 24px;
-      background-color: #10b981;
-      color: #ffffff;
-      border: none;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: 600;
-      font-size: 18px;
-      transition: background-color 0.3s ease;
-    }
-    .pay-button:hover {
-      background-color: #059669;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pay for Your AUTOAI Key</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3.js/1.10.0/web3.min.js"></script>
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827;
+            color: #ffffff;
+            text-align: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            background-color: #1f2937;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        p {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #10b981;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 18px;
+            transition: background-color 0.3s ease;
+            cursor: pointer;
+            margin: 10px;
+        }
+        .button:hover {
+            background-color: #059669;
+        }
+        .button:disabled {
+            background-color: #4b5563;
+            cursor: not-allowed;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .error {
+            background-color: #dc2626;
+        }
+        .success {
+            background-color: #059669;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Pay 1.5 SOL for Your AUTOAI Key</h1>
-    <p>Lifetime access to Auto AI trading bot. After payment, you will receive your AUTOAI key.</p>
-    <button class="pay-button" onclick="payNow()">Pay Now</button>
-  </div>
+    <div class="container">
+        <h1>Pay 1.5 SOL for Your AUTOAI Key</h1>
+        <p>Lifetime access to Auto AI trading bot. After payment, you will receive your AUTOAI key.</p>
+        <button id="connectButton" class="button">Connect Wallet</button>
+        <button id="payButton" class="button" disabled>Pay Now</button>
+        <div id="status" style="display: none;"></div>
+    </div>
 
-  <script>
-    function payNow() {
-      const recipient = '2KZB2a6n3hHK24hE5hqiqnrpMFP4ByE1tNjoQJXwX1VT';
-      const amount = 1.5;
+    <script>
+        let wallet = null;
+        const RECIPIENT_ADDRESS = '2KZB2a6n3hHK24hE5hqiqnrpMFP4ByE1tNjoQJXwX1VT';
+        const AMOUNT = 1.5;
 
-      // Check if user is on a mobile device
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        const connectButton = document.getElementById('connectButton');
+        const payButton = document.getElementById('payButton');
+        const statusDiv = document.getElementById('status');
 
-      if (isMobile) {
-        // Mobile link for Phantom
-        window.location.href = `https://phantom.app/ul/send?recipient=${recipient}&amount=${amount}&token=So11111111111111111111111111111111111111112`;
-      } else {
-        // Desktop link to open Phantom extension
-        window.location.href = `solana:${recipient}?amount=${amount}&spl-token=So11111111111111111111111111111111111111112`;
-      }
-    }
-  </script>
+        async function connectWallet() {
+            try {
+                if (!window.solana || !window.solana.isPhantom) {
+                    throw new Error('Phantom wallet is not installed!');
+                }
+
+                const response = await window.solana.connect();
+                wallet = response.publicKey.toString();
+                
+                connectButton.textContent = 'Wallet Connected';
+                payButton.disabled = false;
+                showStatus('Wallet connected successfully!', 'success');
+            } catch (error) {
+                showStatus('Failed to connect wallet: ' + error.message, 'error');
+            }
+        }
+
+        async function payNow() {
+            try {
+                const connection = new solanaWeb3.Connection(
+                    'https://api.mainnet-beta.solana.com',
+                    'confirmed'
+                );
+
+                const transaction = new solanaWeb3.Transaction().add(
+                    solanaWeb3.SystemProgram.transfer({
+                        fromPubkey: new solanaWeb3.PublicKey(wallet),
+                        toPubkey: new solanaWeb3.PublicKey(RECIPIENT_ADDRESS),
+                        lamports: AMOUNT * solanaWeb3.LAMPORTS_PER_SOL
+                    })
+                );
+
+                const { blockhash } = await connection.getRecentBlockhash();
+                transaction.recentBlockhash = blockhash;
+                transaction.feePayer = new solanaWeb3.PublicKey(wallet);
+
+                const signed = await window.solana.signAndSendTransaction(transaction);
+                const confirmation = await connection.confirmTransaction(signed.signature);
+
+                if (confirmation) {
+                    showStatus('Payment successful! Transaction signature: ' + signed.signature, 'success');
+                }
+            } catch (error) {
+                showStatus('Payment failed: ' + error.message, 'error');
+            }
+        }
+
+        function showStatus(message, type) {
+            statusDiv.style.display = 'block';
+            statusDiv.textContent = message;
+            statusDiv.className = type;
+        }
+
+        connectButton.addEventListener('click', connectWallet);
+        payButton.addEventListener('click', payNow);
+    </script>
 </body>
 </html>
