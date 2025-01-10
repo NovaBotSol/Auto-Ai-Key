@@ -57,19 +57,28 @@
         .success {
             background-color: #059669;
         }
+        #install-phantom {
+            display: none;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Pay 1.5 SOL for Your AUTOAI Key</h1>
         <p>Lifetime access to Auto AI trading bot. After payment, you will receive your AUTOAI key.</p>
-        <button onclick="initiatePayment()" class="button">Pay with Phantom</button>
+        <button onclick="initiatePayment()" class="button" id="pay-button">Pay with Phantom</button>
+        <div id="install-phantom">
+            <p>Phantom wallet not detected. Please install Phantom first:</p>
+            <a href="https://phantom.app/download" target="_blank" class="button">Install Phantom</a>
+        </div>
         <div id="status"></div>
     </div>
 
     <script>
         const RECIPIENT = '2KZB2a6n3hHK24hE5hqiqnrpMFP4ByE1tNjoQJXwX1VT';
         const AMOUNT = 1.5;
+        const SOL_MINT = 'So11111111111111111111111111111111111111112';
         
         function showStatus(message, type) {
             const statusDiv = document.getElementById('status');
@@ -78,33 +87,58 @@
             statusDiv.className = type;
         }
 
-        function initiatePayment() {
+        function checkPhantomInstalled() {
+            const isPhantomInstalled = window.phantom?.solana?.isPhantom || false;
+            document.getElementById('install-phantom').style.display = isPhantomInstalled ? 'none' : 'block';
+            document.getElementById('pay-button').style.display = isPhantomInstalled ? 'inline-block' : 'none';
+            return isPhantomInstalled;
+        }
+
+        async function initiatePayment() {
             try {
-                // Check if on mobile
+                // Check if Phantom is installed
+                if (!checkPhantomInstalled()) {
+                    showStatus('Please install Phantom wallet first', 'error');
+                    return;
+                }
+
+                // Detect if mobile or desktop
                 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
                 
-                // Create the payment URL
+                // Create payment URL with encoded parameters
+                const params = new URLSearchParams({
+                    recipient: RECIPIENT,
+                    amount: AMOUNT.toString(),
+                    spl-token: SOL_MINT,
+                    reference: Date.now().toString(), // Add unique reference
+                });
+
                 let paymentUrl;
                 if (isMobile) {
                     // Mobile deep link
-                    paymentUrl = `https://phantom.app/ul/v1/transfer?recipient=${RECIPIENT}&amount=${AMOUNT}`;
+                    paymentUrl = `https://phantom.app/ul/send?${params.toString()}`;
                 } else {
                     // Desktop protocol handler
-                    paymentUrl = `phantom://transfer?recipient=${RECIPIENT}&amount=${AMOUNT}`;
+                    paymentUrl = `solana:${RECIPIENT}?amount=${AMOUNT}&spl-token=${SOL_MINT}`;
                 }
 
-                // Redirect to Phantom
+                console.log('Payment URL:', paymentUrl); // For debugging
+                
+                // Open Phantom
                 window.location.href = paymentUrl;
                 
                 showStatus('Opening Phantom wallet...', 'success');
                 
             } catch (error) {
                 console.error('Payment initiation failed:', error);
-                showStatus('Failed to open Phantom wallet. Please make sure Phantom is installed.', 'error');
+                showStatus('Failed to open Phantom wallet: ' + error.message, 'error');
             }
         }
 
-        // Check if we're returning from a payment
+        // Check Phantom installation on page load
+        window.addEventListener('load', checkPhantomInstalled);
+
+        // Check for payment status in URL parameters
         window.addEventListener('load', () => {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('status')) {
