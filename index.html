@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pay for Your AUTOAI Key</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/buffer/6.0.3/buffer.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/solana-web3.js/1.87.6/index.min.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -46,33 +48,103 @@
         .button:hover {
             background-color: #059669;
         }
+        .button:disabled {
+            background-color: #4b5563;
+            cursor: not-allowed;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 8px;
+            display: none;
+        }
+        .error {
+            background-color: #dc2626;
+        }
+        .success {
+            background-color: #059669;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Pay 1.5 SOL for Your AUTOAI Key</h1>
         <p>Lifetime access to Auto AI trading bot. After payment, you will receive your AUTOAI key.</p>
-        
-        <!-- Mobile Payment Button -->
-        <a href="https://phantom.app/ul/send?recipient=2KZB2a6n3hHK24hE5hqiqnrpMFP4ByE1tNjoQJXwX1VT&amount=1.5" 
-           class="button" 
-           id="mobileButton">
-            Pay with Phantom (Mobile)
-        </a>
-
-        <!-- Desktop Payment Button -->
-        <a href="solana:2KZB2a6n3hHK24hE5hqiqnrpMFP4ByE1tNjoQJXwX1VT?amount=1.5" 
-           class="button" 
-           id="desktopButton">
-            Pay with Phantom (Desktop)
-        </a>
+        <button id="connectButton" class="button">Connect Wallet</button>
+        <button id="payButton" class="button" disabled>Pay Now</button>
+        <div id="status" style="display: none;"></div>
     </div>
 
     <script>
-        // Show/hide buttons based on device type
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        document.getElementById('mobileButton').style.display = isMobile ? 'inline-block' : 'none';
-        document.getElementById('desktopButton').style.display = isMobile ? 'none' : 'inline-block';
+        window.Buffer = buffer.Buffer;
+        
+        let wallet = null;
+        const RECIPIENT_ADDRESS = '2KZB2a6n3hHK24hE5hqiqnrpMFP4ByE1tNjoQJXwX1VT';
+        const AMOUNT = 1.5;
+
+        const connectButton = document.getElementById('connectButton');
+        const payButton = document.getElementById('payButton');
+        const statusDiv = document.getElementById('status');
+
+        async function connectWallet() {
+            try {
+                if (!window.solana || !window.solana.isPhantom) {
+                    throw new Error('Phantom wallet is not installed!');
+                }
+
+                connectButton.textContent = 'Connecting...';
+                const response = await window.solana.connect();
+                wallet = response.publicKey.toString();
+                
+                connectButton.textContent = 'Connected: ' + wallet.slice(0, 4) + '...' + wallet.slice(-4);
+                payButton.disabled = false;
+                showStatus('Wallet connected successfully!', 'success');
+            } catch (error) {
+                connectButton.textContent = 'Connect Wallet';
+                showStatus('Failed to connect wallet: ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+
+        async function payNow() {
+            try {
+                if (!wallet) {
+                    throw new Error('Please connect your wallet first');
+                }
+
+                payButton.textContent = 'Processing...';
+                payButton.disabled = true;
+
+                // Create the payment URL
+                const paymentUrl = `solana:${RECIPIENT_ADDRESS}?amount=${AMOUNT}`;
+                
+                // Open the payment URL
+                window.location.href = paymentUrl;
+                
+                showStatus('Opening Phantom for payment...', 'success');
+            } catch (error) {
+                payButton.textContent = 'Pay Now';
+                payButton.disabled = false;
+                showStatus('Payment failed: ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+
+        function showStatus(message, type) {
+            statusDiv.style.display = 'block';
+            statusDiv.textContent = message;
+            statusDiv.className = type;
+        }
+
+        window.addEventListener('load', () => {
+            if (!window.solana || !window.solana.isPhantom) {
+                showStatus('Please install Phantom wallet to continue', 'error');
+                connectButton.disabled = true;
+            }
+        });
+
+        connectButton.addEventListener('click', connectWallet);
+        payButton.addEventListener('click', payNow);
     </script>
 </body>
 </html>
