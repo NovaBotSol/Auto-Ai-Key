@@ -74,16 +74,20 @@
     </div>
 
     <script>
+        // Your wallet address and payment details
         const RECIPIENT_ADDRESS = '2KZB2a6n3hHK24hE5hqiqnrpMFP4ByE1tNjoQJXwX1VT';
         const AMOUNT = 1.5;
         const SOL_MINT = 'So11111111111111111111111111111111111111112';
 
+        // Get elements from the HTML
         const connectButton = document.getElementById('connectButton');
         const payButton = document.getElementById('payButton');
         const statusDiv = document.getElementById('status');
 
+        // Variable to store the user's wallet public key
         let publicKey = null;
 
+        // Function to connect the wallet
         async function connectWallet() {
             try {
                 const { solana } = window;
@@ -107,6 +111,7 @@
             }
         }
 
+        // Function to initiate payment
         function payNow() {
             try {
                 if (!publicKey) {
@@ -116,12 +121,12 @@
                 payButton.textContent = 'Opening Phantom...';
                 payButton.disabled = true;
 
-                // Create Phantom transfer URL
-                const transferUrl = `solana:${RECIPIENT_ADDRESS}?amount=${AMOUNT}&spl-token=${SOL_MINT}`;
-                
-                // Open Phantom wallet
-                window.location.href = transferUrl;
-                
+                // Create the Phantom universal link
+                const transferUrl = `https://phantom.app/ul/send?recipient=${RECIPIENT_ADDRESS}&amount=${AMOUNT}&token=${SOL_MINT}`;
+
+                // Open the Phantom wallet link
+                window.open(transferUrl, '_blank');
+
                 showStatus('Opening Phantom wallet for payment...', 'success');
             } catch (error) {
                 payButton.textContent = 'Pay Now';
@@ -131,13 +136,14 @@
             }
         }
 
+        // Function to show status messages
         function showStatus(message, type) {
             statusDiv.style.display = 'block';
             statusDiv.textContent = message;
             statusDiv.className = type;
         }
 
-        // Initial check for Phantom wallet
+        // Check if Phantom Wallet is installed
         window.addEventListener('load', () => {
             if (!window.solana || !window.solana.isPhantom) {
                 showStatus('Please install Phantom wallet to continue', 'error');
@@ -145,6 +151,7 @@
             }
         });
 
+        // Event listeners for buttons
         connectButton.addEventListener('click', connectWallet);
         payButton.addEventListener('click', payNow);
     </script>
