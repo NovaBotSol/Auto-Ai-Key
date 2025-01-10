@@ -74,20 +74,17 @@
     </div>
 
     <script>
-        // Your wallet address and payment details
         const RECIPIENT_ADDRESS = '2KZB2a6n3hHK24hE5hqiqnrpMFP4ByE1tNjoQJXwX1VT';
         const AMOUNT = 1.5;
         const SOL_MINT = 'So11111111111111111111111111111111111111112';
 
-        // Get elements from the HTML
         const connectButton = document.getElementById('connectButton');
         const payButton = document.getElementById('payButton');
         const statusDiv = document.getElementById('status');
 
-        // Variable to store the user's wallet public key
         let publicKey = null;
 
-        // Function to connect the wallet
+        // Function to connect Phantom Wallet
         async function connectWallet() {
             try {
                 const { solana } = window;
@@ -111,7 +108,7 @@
             }
         }
 
-        // Function to initiate payment
+        // Function to pay via Phantom Wallet
         function payNow() {
             try {
                 if (!publicKey) {
@@ -121,11 +118,21 @@
                 payButton.textContent = 'Opening Phantom...';
                 payButton.disabled = true;
 
-                // Create the Phantom universal link
-                const transferUrl = `https://phantom.app/ul/send?recipient=${RECIPIENT_ADDRESS}&amount=${AMOUNT}&token=${SOL_MINT}`;
+                // Check if user is on mobile
+                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-                // Open the Phantom wallet link
-                window.open(transferUrl, '_blank');
+                let transferUrl;
+
+                if (isMobile) {
+                    // Use Phantom universal link for mobile
+                    transferUrl = `https://phantom.app/ul/send?recipient=${RECIPIENT_ADDRESS}&amount=${AMOUNT}&token=${SOL_MINT}`;
+                } else {
+                    // Use solana: protocol for desktop
+                    transferUrl = `solana:${RECIPIENT_ADDRESS}?amount=${AMOUNT}&spl-token=${SOL_MINT}`;
+                }
+
+                // Open the payment link
+                window.location.href = transferUrl;
 
                 showStatus('Opening Phantom wallet for payment...', 'success');
             } catch (error) {
@@ -136,7 +143,7 @@
             }
         }
 
-        // Function to show status messages
+        // Function to display status messages
         function showStatus(message, type) {
             statusDiv.style.display = 'block';
             statusDiv.textContent = message;
@@ -151,7 +158,7 @@
             }
         });
 
-        // Event listeners for buttons
+        // Event listeners
         connectButton.addEventListener('click', connectWallet);
         payButton.addEventListener('click', payNow);
     </script>
