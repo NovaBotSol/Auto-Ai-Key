@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pay for Your AUTOAI Key</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3.js/1.10.0/web3.min.js"></script>
-    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <!-- Add buffer polyfill -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/buffer/6.0.3/buffer.min.js"></script>
+    <!-- Load latest version of Solana Web3.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/solana-web3.js/1.87.6/index.min.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -75,6 +77,9 @@
     </div>
 
     <script>
+        // Make Buffer available globally
+        window.Buffer = buffer.Buffer;
+        
         let wallet = null;
         const RECIPIENT_ADDRESS = '2KZB2a6n3hHK24hE5hqiqnrpMFP4ByE1tNjoQJXwX1VT';
         const AMOUNT = 1.5;
@@ -138,6 +143,14 @@
 
         connectButton.addEventListener('click', connectWallet);
         payButton.addEventListener('click', payNow);
+
+        // Check if Phantom is installed
+        window.addEventListener('load', () => {
+            if (!window.solana || !window.solana.isPhantom) {
+                showStatus('Please install Phantom wallet to continue', 'error');
+                connectButton.disabled = true;
+            }
+        });
     </script>
 </body>
 </html>
