@@ -5,10 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pay for Your AUTOAI Key</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-    <!-- Add buffer -->
-    <script src="https://bundle.run/buffer@6.0.3"></script>
-    <!-- Add the latest @solana/web3.js -->
-    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -78,11 +74,9 @@
     </div>
 
     <script>
-        // Make Buffer globally available
-        window.Buffer = buffer.Buffer;
-
         const RECIPIENT_ADDRESS = '2KZB2a6n3hHK24hE5hqiqnrpMFP4ByE1tNjoQJXwX1VT';
         const AMOUNT = 1.5;
+        const SOL_MINT = 'So11111111111111111111111111111111111111112';
 
         const connectButton = document.getElementById('connectButton');
         const payButton = document.getElementById('payButton');
@@ -113,53 +107,22 @@
             }
         }
 
-        async function payNow() {
+        function payNow() {
             try {
                 if (!publicKey) {
                     throw new Error('Please connect your wallet first');
                 }
 
-                payButton.textContent = 'Processing...';
+                payButton.textContent = 'Opening Phantom...';
                 payButton.disabled = true;
 
-                const { solana } = window;
+                // Create Phantom transfer URL
+                const transferUrl = `solana:${RECIPIENT_ADDRESS}?amount=${AMOUNT}&spl-token=${SOL_MINT}`;
                 
-                // Create connection
-                const connection = new solanaWeb3.Connection(
-                    solanaWeb3.clusterApiUrl('mainnet-beta')
-                );
-
-                // Create transaction instruction
-                let transaction = new solanaWeb3.Transaction();
+                // Open Phantom wallet
+                window.location.href = transferUrl;
                 
-                // Add transfer instruction
-                transaction.add(
-                    solanaWeb3.SystemProgram.transfer({
-                        fromPubkey: publicKey,
-                        toPubkey: new solanaWeb3.PublicKey(RECIPIENT_ADDRESS),
-                        lamports: AMOUNT * solanaWeb3.LAMPORTS_PER_SOL
-                    })
-                );
-
-                // Get recent blockhash
-                const { blockhash } = await connection.getLatestBlockhash();
-                transaction.recentBlockhash = blockhash;
-                transaction.feePayer = publicKey;
-
-                // Sign and send transaction
-                const { signature } = await solana.signAndSendTransaction(transaction);
-                
-                showStatus('Transaction sent! Waiting for confirmation...', 'success');
-
-                // Wait for confirmation
-                const confirmation = await connection.confirmTransaction(signature);
-                
-                if (confirmation.value.err) {
-                    throw new Error('Transaction failed');
-                }
-
-                payButton.textContent = 'Payment Successful!';
-                showStatus('Payment confirmed! Signature: ' + signature, 'success');
+                showStatus('Opening Phantom wallet for payment...', 'success');
             } catch (error) {
                 payButton.textContent = 'Pay Now';
                 payButton.disabled = false;
