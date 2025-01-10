@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pay for Your AUTOAI Key</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-    <!-- Add buffer polyfill -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/buffer/6.0.3/buffer.min.js"></script>
-    <!-- Load latest version of Solana Web3.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/solana-web3.js/1.87.6/index.min.js"></script>
     <style>
         body {
@@ -77,7 +75,6 @@
     </div>
 
     <script>
-        // Make Buffer available globally
         window.Buffer = buffer.Buffer;
         
         let wallet = null;
@@ -88,29 +85,66 @@
         const payButton = document.getElementById('payButton');
         const statusDiv = document.getElementById('status');
 
+        const getProvider = () => {
+            if ('phantom' in window) {
+                const provider = window.phantom?.solana;
+
+                if (provider?.isPhantom) {
+                    return provider;
+                }
+            }
+
+            window.open('https://phantom.app/', '_blank');
+        };
+
         async function connectWallet() {
             try {
-                if (!window.solana || !window.solana.isPhantom) {
-                    throw new Error('Phantom wallet is not installed!');
+                const provider = getProvider();
+                
+                if (!provider) {
+                    throw new Error('Please install Phantom wallet!');
                 }
 
-                const response = await window.solana.connect();
-                wallet = response.publicKey.toString();
+                connectButton.textContent = 'Connecting...';
                 
-                connectButton.textContent = 'Wallet Connected';
+                // Connect and get public key
+                const resp = await provider.connect();
+                wallet = resp.publicKey.toString();
+                
+                // Update UI
+                connectButton.textContent = 'Connected: ' + wallet.slice(0, 4) + '...' + wallet.slice(-4);
                 payButton.disabled = false;
                 showStatus('Wallet connected successfully!', 'success');
+                
+                // Listen for disconnect
+                provider.on('disconnect', () => {
+                    wallet = null;
+                    connectButton.textContent = 'Connect Wallet';
+                    payButton.disabled = true;
+                    showStatus('Wallet disconnected', 'error');
+                });
+                
             } catch (error) {
+                connectButton.textContent = 'Connect Wallet';
                 showStatus('Failed to connect wallet: ' + error.message, 'error');
+                console.error(error);
             }
         }
 
         async function payNow() {
             try {
+                const provider = getProvider();
+                if (!provider || !wallet) {
+                    throw new Error('Please connect your wallet first');
+                }
+
                 const connection = new solanaWeb3.Connection(
                     'https://api.mainnet-beta.solana.com',
                     'confirmed'
                 );
+
+                payButton.textContent = 'Processing...';
+                payButton.disabled = true;
 
                 const transaction = new solanaWeb3.Transaction().add(
                     solanaWeb3.SystemProgram.transfer({
@@ -124,14 +158,20 @@
                 transaction.recentBlockhash = blockhash;
                 transaction.feePayer = new solanaWeb3.PublicKey(wallet);
 
-                const signed = await window.solana.signAndSendTransaction(transaction);
-                const confirmation = await connection.confirmTransaction(signed.signature);
+                const signed = await provider.signAndSendTransaction(transaction);
+                showStatus('Transaction sent! Confirming...', 'success');
 
+                const confirmation = await connection.confirmTransaction(signed.signature);
+                
                 if (confirmation) {
+                    payButton.textContent = 'Paid Successfully!';
                     showStatus('Payment successful! Transaction signature: ' + signed.signature, 'success');
                 }
             } catch (error) {
+                payButton.textContent = 'Pay Now';
+                payButton.disabled = false;
                 showStatus('Payment failed: ' + error.message, 'error');
+                console.error(error);
             }
         }
 
@@ -144,9 +184,10 @@
         connectButton.addEventListener('click', connectWallet);
         payButton.addEventListener('click', payNow);
 
-        // Check if Phantom is installed
+        // Initial check for Phantom
         window.addEventListener('load', () => {
-            if (!window.solana || !window.solana.isPhantom) {
+            const provider = getProvider();
+            if (!provider) {
                 showStatus('Please install Phantom wallet to continue', 'error');
                 connectButton.disabled = true;
             }
